@@ -110,3 +110,13 @@ test("code-looking terminators inside literal data are not real closures", () =>
     html("<message-input>example `</message-input>`\n\nDone</message-input>")
   ).toContain("example `&#x3C;/message-input>`\n\nDone");
 });
+
+test.each([
+  "# Plan\n\n1. First step\n2.",
+  '<tabs><tab label="Plan">\n# Plan\n\n1. First step\n2.\n</tab></tabs>',
+])("preserves the unfinished empty numbered-list item in %s", (source) => {
+  const rendered = html(source);
+  expect(rendered.match(/<li>/g)).toHaveLength(2);
+  expect(rendered).toContain("<li></li>");
+  expect(rendered).not.toContain("<p></p>");
+});

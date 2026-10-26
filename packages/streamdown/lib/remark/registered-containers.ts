@@ -602,7 +602,9 @@ function foldContainers(input: Root) {
       }
       return;
     }
-    if (node.children && node.type !== "registeredContainer") {
+    // Empty structural nodes (for example an unfinished list item) are leaves
+    // worth preserving, not ancestor paths that can emit no descendants.
+    if (node.children?.length && node.type !== "registeredContainer") {
       path.push(node);
       for (const child of node.children) visit(child);
       path.pop();

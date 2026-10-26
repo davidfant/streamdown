@@ -122,3 +122,13 @@ test.each([
   expect(rendered).toContain(contents);
   expect(rendered).not.toContain("!----");
 });
+
+test.each([
+  "# Plan\n\n1. First step\n2.",
+  '<tabs><tab label="Plan">\n# Plan\n\n1. First step\n2.\n</tab></tabs>',
+])("preserves the unfinished empty numbered-list item in %s", (source) => {
+  const rendered = html(source);
+  expect(rendered.match(/<li>/g)).toHaveLength(2);
+  expect(rendered).toContain("<li></li>");
+  expect(rendered).not.toContain("<p></p>");
+});

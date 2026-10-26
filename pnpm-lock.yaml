@@ -173,7 +173,7 @@ importers:
         version: 2.0.1(next@16.3.7(@opentelemetry/api@1.9.0)(@types/node@24.10.10)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
       '@vercel/geistdocs':
         specifier: 2.11.0
-        version: 2.11.0(@svta/cml-cta@1.0.1(@svta/cml-structured-field-values@1.0.1(@svta/cml-utils@1.0.1))(@svta/cml-utils@1.0.1))(@svta/cml-structured-field-values@1.0.1(@svta/cml-utils@1.0.1))(@svta/cml-utils@1.0.1)(@tanstack/react-router@1.151.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@types/react-dom@19.2.3(@types/react@19.2.7))(lucide-react@1.48.0(react@19.2.3))(next@16.3.7(@opentelemetry/api@1.9.0)(@types/node@24.10.10)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(tailwindcss@4.3.3)(vite@7.3.1(@types/node@24.10.10)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.9.0))
+        version: 2.11.0(@svta/cml-cta@1.0.1(@svta/cml-structured-field-values@1.0.1(@svta/cml-utils@1.0.1))(@svta/cml-utils@1.0.1))(@svta/cml-structured-field-values@1.0.1(@svta/cml-utils@1.0.1))(@svta/cml-utils@1.0.1)(@tanstack/react-router@1.151.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@types/mdast@4.0.4)(@types/react-dom@19.2.3(@types/react@19.2.7))(lucide-react@1.48.0(react@19.2.3))(next@16.3.7(@opentelemetry/api@1.9.0)(@types/node@24.10.10)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(tailwindcss@4.3.3)(vite@7.3.1(@types/node@24.10.10)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.9.0))
       '@vercel/speed-insights':
         specifier: ^2.0.0
         version: 2.0.0(next@16.3.7(@opentelemetry/api@1.9.0)(@types/node@24.10.10)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
@@ -310,6 +310,18 @@ importers:
       marked:
         specifier: ^18.0.11
         version: 18.0.11
+      micromark:
+        specifier: ^4.0.2
+        version: 4.0.2
+      micromark-core-commonmark:
+        specifier: ^2.0.3
+        version: 2.0.3
+      micromark-factory-space:
+        specifier: ^2.0.1
+        version: 2.0.1
+      parse-entities:
+        specifier: ^4.0.2
+        version: 4.0.2
       react:
         specifier: ^18.0.0 || ^19.0.0
         version: 19.2.3
@@ -365,6 +377,9 @@ importers:
       '@types/hast':
         specifier: ^3.0.5
         version: 3.0.5
+      '@types/mdast':
+        specifier: ^4.0.4
+        version: 4.0.4
       '@types/react':
         specifier: ^19.2.7
         version: 19.2.7
@@ -377,9 +392,18 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^4.1.10
         version: 4.1.10(vitest@5.0.0)
+      hast-util-to-html:
+        specifier: ^9.0.5
+        version: 9.0.5
       jsdom:
         specifier: ^27.3.0
         version: 27.4.0
+      mdast-util-from-markdown:
+        specifier: ^2.0.3
+        version: 2.0.3
+      micromark-util-types:
+        specifier: ^2.0.2
+        version: 2.0.2
       react-dom:
         specifier: ^19.2.3
         version: 19.2.3(react@19.2.3)
@@ -11252,7 +11276,7 @@ snapshots:
     dependencies:
       execa: 5.1.1
 
-  '@vercel/geistdocs@2.11.0(@svta/cml-cta@1.0.1(@svta/cml-structured-field-values@1.0.1(@svta/cml-utils@1.0.1))(@svta/cml-utils@1.0.1))(@svta/cml-structured-field-values@1.0.1(@svta/cml-utils@1.0.1))(@svta/cml-utils@1.0.1)(@tanstack/react-router@1.151.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@types/react-dom@19.2.3(@types/react@19.2.7))(lucide-react@1.48.0(react@19.2.3))(next@16.3.7(@opentelemetry/api@1.9.0)(@types/node@24.10.10)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(tailwindcss@4.3.3)(vite@7.3.1(@types/node@24.10.10)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.9.0))':
+  '@vercel/geistdocs@2.11.0(@svta/cml-cta@1.0.1(@svta/cml-structured-field-values@1.0.1(@svta/cml-utils@1.0.1))(@svta/cml-utils@1.0.1))(@svta/cml-structured-field-values@1.0.1(@svta/cml-utils@1.0.1))(@svta/cml-utils@1.0.1)(@tanstack/react-router@1.151.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@types/mdast@4.0.4)(@types/react-dom@19.2.3(@types/react@19.2.7))(lucide-react@1.48.0(react@19.2.3))(next@16.3.7(@opentelemetry/api@1.9.0)(@types/node@24.10.10)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(tailwindcss@4.3.3)(vite@7.3.1(@types/node@24.10.10)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.9.0))':
     dependencies:
       '@ai-sdk/react': 3.0.201(react@19.2.3)(zod@4.6.5)
       '@clack/prompts': 0.11.0

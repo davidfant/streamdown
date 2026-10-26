@@ -47,11 +47,12 @@ import type {
   ThemeInput,
 } from "./lib/plugin-types";
 import { PrefixContext } from "./lib/prefix-context";
-import { preprocessCustomTags } from "./lib/preprocess-custom-tags";
-import { preprocessLiteralTagContent } from "./lib/preprocess-literal-tag-content";
 import { rehypeBlockDirection } from "./lib/rehype/block-direction";
-import { rehypeLiteralTagContent } from "./lib/rehype/literal-tag-content";
 import { remarkCodeMeta } from "./lib/remark/code-meta";
+import {
+  remarkRegisteredContainers,
+  registeredLiteralRanges,
+} from "./lib/remark/registered-containers";
 import { remarkDisableAutolinkProtocols } from "./lib/remark/disable-autolink-protocols";
 import type { CSVSeparator } from "./lib/table/utils";
 import {
@@ -646,7 +647,7 @@ export const Streamdown = memo(
     tableMaxHeight = 300,
     animated,
     BlockComponent = Block,
-    parseMarkdownIntoBlocksFn = parseMarkdownIntoBlocks,
+    parseMarkdownIntoBlocksFn,
     caret,
     plugins,
     remend: remendOptions,
@@ -715,25 +716,19 @@ export const Streamdown = memo(
       if (typeof children !== "string") {
         return "";
       }
-      let result =
+      const result =
         mode === "streaming" && shouldParseIncompleteMarkdown
-          ? remend(children, remendOptions)
+          ? remend(children, {
+              ...remendOptions,
+              literalRanges: literalTagContent?.length
+                ? (source) =>
+                    registeredLiteralRanges(source, {
+                      names: allowedTagNames,
+                      literal: literalTagContent,
+                    })
+                : undefined,
+            })
           : children;
-
-      // Escape markdown metacharacters inside literal-tag-content tags so that
-      // children are rendered as plain text rather than parsed as markdown.
-      // This must run BEFORE preprocessCustomTags so that the HTML comments
-      // (<!---->) inserted to preserve blank lines are not themselves escaped.
-      if (literalTagContent && literalTagContent.length > 0) {
-        result = preprocessLiteralTagContent(result, literalTagContent);
-      }
-
-      // Normalize multi-line custom tags: blank-line sandwich so nested markdown
-      // parses, plus <!----> placeholders for internal blank lines. Runs after
-      // literal escaping so those markers are not corrupted.
-      if (allowedTagNames.length > 0) {
-        result = preprocessCustomTags(result, allowedTagNames);
-      }
 
       return result;
     }, [
@@ -746,8 +741,13 @@ export const Streamdown = memo(
     ]);
 
     const blocks = useMemo(
-      () => parseMarkdownIntoBlocksFn(processedChildren),
-      [processedChildren, parseMarkdownIntoBlocksFn]
+      () =>
+        parseMarkdownIntoBlocksFn
+          ? parseMarkdownIntoBlocksFn(processedChildren)
+          : allowedTagNames.length > 0
+            ? [processedChildren]
+            : parseMarkdownIntoBlocks(processedChildren),
+      [processedChildren, parseMarkdownIntoBlocksFn, allowedTagNames]
     );
 
     // Render blocks directly. The previous displayBlocks + useTransition path
@@ -959,6 +959,12 @@ export const Streamdown = memo(
       if (plugins?.cjk) {
         result = [...result, ...plugins.cjk.remarkPluginsBefore];
       }
+      if (allowedTagNames.length > 0) {
+        result.push([
+          remarkRegisteredContainers,
+          { names: allowedTagNames, literal: literalTagContent },
+        ]);
+      }
       // Default plugins (includes remarkGfm)
       result = [...result, ...remarkPlugins];
       // Optionally strip GFM autolink-literal links for disabled protocols
@@ -980,7 +986,15 @@ export const Streamdown = memo(
         result = [...result, plugins.math.remarkPlugin];
       }
       return result;
-    }, [remarkPlugins, plugins?.math, plugins?.cjk, disableAutolinkProtocols]);
+    }, [
+      remarkPlugins,
+      plugins?.math,
+      plugins?.cjk,
+      disableAutolinkProtocols,
+      allowedTagNames,
+      literalTagContent,
+      shouldNormalizeHtmlIndentation,
+    ]);
 
     const mergedRehypePlugins = useMemo(() => {
       let result = rehypePlugins;
@@ -1008,10 +1022,6 @@ export const Streamdown = memo(
           [rehypeSanitize, extendedSchema],
           defaultRehypePlugins.harden,
         ];
-      }
-
-      if (literalTagContent && literalTagContent.length > 0) {
-        result = [...result, [rehypeLiteralTagContent, literalTagContent]];
       }
 
       if (plugins?.math) {
@@ -1178,7 +1188,8 @@ export const Streamdown = memo(
                         rehypePlugins={blockRehypePlugins}
                         remarkPlugins={mergedRemarkPlugins}
                         shouldNormalizeHtmlIndentation={
-                          shouldNormalizeHtmlIndentation
+                          shouldNormalizeHtmlIndentation &&
+                          allowedTagNames.length === 0
                         }
                         shouldParseIncompleteMarkdown={
                           shouldParseIncompleteMarkdown

@@ -188,3 +188,25 @@ Combine with explicit overrides when some tags need special treatment:
   {markdown}
 </Streamdown>
 ```
+
+
+## Registered Markdown containers
+
+Names in `allowedTags` are parsed as tolerant Markdown containers. Their bodies
+support ordinary Markdown and other registered containers, including compact
+`<tabs><tab label="Example">**Markdown**</tab></tabs>` syntax. Markdown fences,
+code spans, autolinks and indented code retain their normal precedence. Four-space
+indented code is not reclassified as a widget, even with `normalizeHtmlIndentation`.
+The indentation-normalization option continues to apply to unregistered HTML.
+
+`literalTagContent` makes a registered body opaque source data instead of Markdown.
+Its text, whitespace and entities are preserved through streaming repair. Fenced
+and inline-code examples may contain an apparent closing tag. A literal container
+is emitted only when its closing tag arrives; unfinished literals stay hidden.
+Ordinary unfinished Markdown containers remain renderable while streaming.
+
+Registered documents use one canonical whole-document Markdown tree so nested
+containers and references are not split between independently rendered blocks.
+An explicit `parseMarkdownIntoBlocksFn` still takes precedence; callers overriding
+it are responsible for retaining container boundaries. The existing sanitization,
+URL hardening and component mapping remain in effect.

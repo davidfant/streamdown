@@ -5,8 +5,10 @@ import {
   codeFenced,
   codeText,
   content,
+  htmlFlow,
 } from "micromark-core-commonmark";
 import { factorySpace } from "micromark-factory-space";
+import { htmlBlockNames } from "micromark-util-html-tag-name";
 import type { Processor } from "unified";
 import type {
   Code,
@@ -28,6 +30,9 @@ interface Tag {
   closing: boolean;
   selfClosing: boolean;
   properties: Record<string, string | boolean>;
+  flow: boolean;
+  openingLength?: number;
+  closingLength?: number;
   bodyStart?: number;
   bodyEnd?: number;
 }
@@ -59,6 +64,7 @@ interface ContainerNode {
   closed?: boolean;
   closing?: boolean;
   selfClosing?: boolean;
+  flow?: boolean;
   properties?: Tag["properties"];
   children?: ContainerNode[];
   position?: Root["position"];
@@ -72,6 +78,7 @@ declare module "micromark-util-types" {
   interface TokenTypeMap {
     registeredTag: "registeredTag";
     registeredTagMarker: "registeredTagMarker";
+    registeredTagMarkerData: "registeredTagMarkerData";
     registeredLiteral: "registeredLiteral";
     registeredLiteralData: "registeredLiteralData";
     registeredLiteralClose: "registeredLiteralClose";
@@ -92,6 +99,7 @@ export function remarkRegisteredContainers(
   options: {
     names: string[];
     literal?: string[];
+    normalizeHtmlIndentation?: boolean;
   }
 ) {
   const data = this.data();
@@ -111,8 +119,8 @@ export function remarkRegisteredContainers(
         const tag = token.registeredTag!;
         const raw = this.sliceSerialize(token);
         const value = raw.slice(
-          tag.bodyStart! - token.start.offset,
-          (tag.bodyEnd ?? token.end.offset) - token.start.offset
+          tag.openingLength!,
+          tag.closingLength ? -tag.closingLength : undefined
         );
         this.enter(
           {
@@ -148,6 +156,7 @@ export function remarkRegisteredContainers(
 function registeredContainers(options: {
   names: string[];
   literal?: string[];
+  normalizeHtmlIndentation?: boolean;
 }): Extension {
   const names = new Set(options.names.map((name) => name.toLowerCase()));
   const literals = new Set(options.literal?.map((name) => name.toLowerCase()));
@@ -157,9 +166,49 @@ function registeredContainers(options: {
     concrete: true,
     tokenize: tokenizeTag(true),
   };
-  return { flow: { 60: flow }, text: { 60: text } };
+  const indentedHtml = {
+    name: "registeredUnregisteredHtmlIndentation",
+    tokenize: normalizeUnregisteredHtml,
+  };
+  return {
+    flow: { 60: flow },
+    text: { 60: text },
+    ...(options.normalizeHtmlIndentation
+      ? {
+          flowInitial: {
+            [-2]: indentedHtml,
+            [-1]: indentedHtml,
+            32: indentedHtml,
+          },
+        }
+      : {}),
+  };
 
-  function tokenizeTag(isFlow: boolean): Tokenizer {
+  // Honor the explicit HTML option in the existing flow grammar rather than
+  // rewriting source. Custom widgets keep CommonMark's code precedence;
+  // native HTML block names retain the option's existing HTML semantics.
+  function normalizeUnregisteredHtml(
+    this: TokenizeContext,
+    effects: Effects,
+    ok: State,
+    nok: State
+  ) {
+    return factorySpace(effects, afterIndent, "linePrefix");
+    function afterIndent(code: Code): ReturnType<State> {
+      if (code !== 60) return nok(code);
+      return effects.check(
+        { tokenize: tokenizeTag(false, true, true) },
+        nok,
+        effects.attempt([flow, htmlFlow], ok, nok)
+      )(code);
+    }
+  }
+
+  function tokenizeTag(
+    isFlow: boolean,
+    markerOnly = false,
+    excludeNativeHtml = false
+  ): Tokenizer {
     return function (
       this: TokenizeContext,
       effects: Effects,
@@ -168,6 +217,9 @@ function registeredContainers(options: {
     ) {
       const self = this;
       let token: Token;
+      let markerToken: Token;
+      let markerOpen = false;
+      let markerDataOpen = false;
       let name = "";
       let closing = false;
       let selfClosing = false;
@@ -182,14 +234,24 @@ function registeredContainers(options: {
       return start;
 
       function consume(code: number | null) {
-        if (lineEnding(code)) effects.enter("lineEnding");
+        if (lineEnding(code)) {
+          if (markerDataOpen) {
+            effects.exit("registeredTagMarkerData");
+            markerDataOpen = false;
+          }
+          effects.enter("lineEnding");
+        } else if (markerOpen && !markerDataOpen) {
+          effects.enter("registeredTagMarkerData");
+          markerDataOpen = true;
+        }
         effects.consume(code);
         if (lineEnding(code)) effects.exit("lineEnding");
       }
       function start(code: number | null): ReturnType<State> {
         if (code !== 60) return nok(code);
         token = effects.enter("registeredTag");
-        effects.enter("registeredTagMarker");
+        markerToken = effects.enter("registeredTagMarker");
+        markerOpen = true;
         consume(code);
         return beforeName;
       }
@@ -208,7 +270,12 @@ function registeredContainers(options: {
           consume(code);
           return inName;
         }
-        if (!names.has(name)) return nok(code);
+        if (
+          !names.has(name) ||
+          (excludeNativeHtml && htmlBlockNames.includes(name))
+        ) {
+          return nok(code);
+        }
         return beforeAttribute(code);
       }
       function beforeAttribute(code: number | null): ReturnType<State> {
@@ -296,9 +363,21 @@ function registeredContainers(options: {
       }
       function tagEnd(code: number | null): ReturnType<State> {
         consume(code);
+        if (markerDataOpen) {
+          effects.exit("registeredTagMarkerData");
+          markerDataOpen = false;
+        }
+        markerOpen = false;
         effects.exit("registeredTagMarker");
-        token.registeredTag = { name, closing, selfClosing, properties };
-        if (self.interrupt) {
+        token.registeredTag = {
+          name,
+          closing,
+          selfClosing,
+          properties,
+          flow: isFlow,
+          openingLength: self.sliceSerialize(markerToken).length,
+        };
+        if (self.interrupt || markerOnly) {
           effects.exit("registeredTag");
           return ok;
         }
@@ -408,7 +487,9 @@ function registeredContainers(options: {
             }
             if (code === 62) {
               e.consume(code);
-              e.exit("registeredLiteralClose");
+              const closeToken = e.exit("registeredLiteralClose");
+              token.registeredTag!.closingLength =
+                self.sliceSerialize(closeToken).length;
               return yes;
             }
           }
@@ -533,6 +614,7 @@ function foldContainers(input: Root) {
   const frames = [
     {
       node: root,
+      outerAncestors: new Set<ContainerNode>(),
       excluded: new Set<ContainerNode>(),
       clones: new Map<
         ContainerNode,
@@ -579,9 +661,14 @@ function foldContainers(input: Root) {
           for (const frame of frames.slice(index)) {
             if (frame.node.position && node.position) frame.node.position.end = node.position.end;
           }
+          const outerAncestors = frames[index].outerAncestors;
           frames.length = index;
           const frame = frames[frames.length - 1];
-          for (const ancestor of path) frame.excluded.add(ancestor);
+          // Only cut structures opened inside this container. Enclosing inline
+          // Markdown still owns the text after its closing boundary.
+          for (const ancestor of path) {
+            if (!outerAncestors.has(ancestor)) frame.excluded.add(ancestor);
+          }
         }
         return;
       }
@@ -592,10 +679,11 @@ function foldContainers(input: Root) {
         children: [],
         position: node.position,
       };
-      destination(true).children.push(container);
+      destination(node.flow).children.push(container);
       if (!node.selfClosing) {
         frames.push({
           node: container,
+          outerAncestors: new Set(path),
           excluded: new Set(path),
           clones: new Map(),
         });

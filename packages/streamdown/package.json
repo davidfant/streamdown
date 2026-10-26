@@ -44,6 +44,7 @@
     "micromark": "^4.0.2",
     "micromark-core-commonmark": "^2.0.3",
     "micromark-factory-space": "^2.0.1",
+    "micromark-util-html-tag-name": "^2.0.1",
     "parse-entities": "^4.0.2",
     "rehype-harden": "^1.1.8",
     "rehype-raw": "^7.0.0",

@@ -962,7 +962,11 @@ export const Streamdown = memo(
       if (allowedTagNames.length > 0) {
         result.push([
           remarkRegisteredContainers,
-          { names: allowedTagNames, literal: literalTagContent },
+          {
+            names: allowedTagNames,
+            literal: literalTagContent,
+            normalizeHtmlIndentation: shouldNormalizeHtmlIndentation,
+          },
         ]);
       }
       // Default plugins (includes remarkGfm)

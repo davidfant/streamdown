@@ -781,6 +781,7 @@ export const Streamdown = memo(
                     registeredLiteralRanges(source, {
                       names: allowedTagNames,
                       literal: literalTagContent,
+                      normalizeHtmlIndentation: shouldNormalizeHtmlIndentation,
                     })
                 : undefined,
             })
@@ -794,6 +795,7 @@ export const Streamdown = memo(
       remendOptions,
       allowedTagNames,
       literalTagContent,
+      shouldNormalizeHtmlIndentation,
     ]);
 
     const blocks = useMemo(

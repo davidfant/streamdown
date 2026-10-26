@@ -80,6 +80,25 @@ for (const mode of ["static", "streaming"] as const) {
       );
     });
 
+    it("uses identical normalization options for repair and native HTML literals", () => {
+      const bodies: unknown[] = [];
+      renderToStaticMarkup(
+        <Streamdown
+          allowedTags={{ pre: [] }}
+          literalTagContent={["pre"]}
+          normalizeHtmlIndentation
+          mode={mode}
+          components={{ pre: ({ children }) => {
+            bodies.push(children);
+            return createElement("span", null, children);
+          } }}
+        >
+          {"    <pre>20~25\n\n[unfinished](raw</pre>"}
+        </Streamdown>
+      );
+      expect(bodies).toEqual(["20~25\n\n[unfinished](raw"]);
+    });
+
     it("does not rewrite indented HTML-looking literal data", () => {
       const value = "\n    <div>raw</div>\n\n    <div>more</div>\n";
       expect(render(`<message-input>${value}</message-input>`, mode, true).bodies)

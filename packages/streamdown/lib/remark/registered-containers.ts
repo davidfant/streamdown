@@ -8,7 +8,7 @@ import {
   htmlFlow,
 } from "micromark-core-commonmark";
 import { factorySpace } from "micromark-factory-space";
-import { htmlBlockNames } from "micromark-util-html-tag-name";
+import { htmlBlockNames, htmlRawNames } from "micromark-util-html-tag-name";
 import type { Processor } from "unified";
 import type {
   Code,
@@ -272,7 +272,8 @@ function registeredContainers(options: {
         }
         if (
           !names.has(name) ||
-          (excludeNativeHtml && htmlBlockNames.includes(name))
+          (excludeNativeHtml &&
+            (htmlBlockNames.includes(name) || htmlRawNames.includes(name)))
         ) {
           return nok(code);
         }
@@ -552,7 +553,11 @@ function registeredContainers(options: {
 /** Locate literal tokens using the same grammar, without building another AST. */
 export function registeredLiteralRanges(
   source: string,
-  options: { names: string[]; literal?: string[] }
+  options: {
+    names: string[];
+    literal?: string[];
+    normalizeHtmlIndentation?: boolean;
+  }
 ): Array<{ start: number; end: number }> {
   if (!options.literal?.length || !source.includes("<")) return [];
   const events = postprocess(
